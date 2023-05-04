@@ -5,6 +5,11 @@ import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
 
 public class TextEditor extends JFrame {
 
@@ -32,10 +37,43 @@ public class TextEditor extends JFrame {
         JButton saveButton = new JButton("Save");
         saveButton.setName("SaveButton");
         forceSize(saveButton, 75, 25);
+        saveButton.addActionListener(e -> {
+                    String fileName = textField.getText();
+                    if (fileName.isEmpty()) {
+                        JOptionPane.showMessageDialog(TextEditor.this,
+                                "Please enter a file name.");
+                        return;
+                    }
+                    try {
+                        Files.writeString(Paths.get("src", fileName), textArea.getText());
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(TextEditor.this,
+                                "Error saving file: " + ex.getMessage());
+                    }
+                }
+        );
 
         JButton loadButton = new JButton("Load");
         loadButton.setName("LoadButton");
         forceSize(loadButton, 75, 25);
+        loadButton.addActionListener(e -> {
+            String fileName = textField.getText();
+            if (fileName.isEmpty()) {
+                JOptionPane.showMessageDialog(TextEditor.this,
+                        "Please enter a file name.");
+                return;
+            }
+            try {
+                textArea.setText(Files.readString(Paths.get("src", fileName), StandardCharsets.UTF_8));
+            } catch (NoSuchFileException ex) {
+                textArea.setText("");
+                JOptionPane.showMessageDialog(TextEditor.this,
+                        "File not found: " + fileName);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(TextEditor.this,
+                        "Error loading file: " + ex.getMessage());
+            }
+        });
 
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.add(textField);
