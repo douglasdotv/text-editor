@@ -88,6 +88,63 @@ public class TextEditor extends JFrame {
         setMargin(mainPanel, 5, 5, 5, 5);
 
         add(mainPanel);
+
+        JMenuBar menuBar = new JMenuBar();
+
+        JMenu menu = new JMenu("File");
+        menu.setName("MenuFile");
+        menu.setMnemonic('F');
+        menuBar.add(menu);
+
+        JMenuItem loadMenuItem = new JMenuItem("Load");
+        loadMenuItem.setName("MenuLoad");
+        loadMenuItem.addActionListener(e -> {
+            String fileName = textField.getText();
+            if (fileName.isEmpty()) {
+                JOptionPane.showMessageDialog(TextEditor.this,
+                        "Please enter a file name.");
+                return;
+            }
+            try {
+                textArea.setText(Files.readString(Paths.get("src", fileName), StandardCharsets.UTF_8));
+            } catch (NoSuchFileException ex) {
+                textArea.setText("");
+                JOptionPane.showMessageDialog(TextEditor.this,
+                        "File not found: " + fileName);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(TextEditor.this,
+                        "Error loading file: " + ex.getMessage());
+            }
+        });
+
+        JMenuItem saveMenuItem = new JMenuItem("Save");
+        saveMenuItem.setName("MenuSave");
+        saveMenuItem.addActionListener(e -> {
+                    String fileName = textField.getText();
+                    if (fileName.isEmpty()) {
+                        JOptionPane.showMessageDialog(TextEditor.this,
+                                "Please enter a file name.");
+                        return;
+                    }
+                    try {
+                        Files.writeString(Paths.get("src", fileName), textArea.getText());
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(TextEditor.this,
+                                "Error saving file: " + ex.getMessage());
+                    }
+                }
+        );
+
+        JMenuItem exitMenuItem = new JMenuItem("Exit");
+        exitMenuItem.setName("MenuExit");
+        exitMenuItem.addActionListener(e -> dispose());
+
+        menu.add(loadMenuItem);
+        menu.add(saveMenuItem);
+        menu.add(new JSeparator());
+        menu.add(exitMenuItem);
+
+        setJMenuBar(menuBar);
     }
 
     private void setMargin(JComponent aComponent, int aTop, int aRight, int aBottom, int aLeft) {
