@@ -7,6 +7,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -57,19 +58,27 @@ public class TextEditor extends JFrame {
     }
 
     private JButton createSaveButton() {
-        JButton saveButton = new JButton("Save");
+        URL iconURL = getClass().getClassLoader().getResource("save_file_icon.jpg");
+        if (iconURL == null) {
+            throw new RuntimeException("Resource not found: save_file_icon.jpg");
+        }
+        JButton saveButton = new JButton(new ImageIcon(iconURL));
         saveButton.setName("SaveButton");
-        forceSize(saveButton, 75, 25);
+        forceSize(saveButton, 30, 30);
         saveButton.addActionListener(e -> saveFile());
         return saveButton;
     }
 
     private JButton createLoadButton() {
-        JButton loadButton = new JButton("Load");
-        loadButton.setName("LoadButton");
-        forceSize(loadButton, 75, 25);
-        loadButton.addActionListener(e -> loadFile());
-        return loadButton;
+        URL iconURL = getClass().getClassLoader().getResource("load_file_icon.jpg");
+        if (iconURL == null) {
+            throw new RuntimeException("Resource not found: load_file_icon.jpg");
+        }
+        JButton saveButton = new JButton(new ImageIcon(iconURL));
+        saveButton.setName("SaveButton");
+        forceSize(saveButton, 30, 30);
+        saveButton.addActionListener(e -> saveFile());
+        return saveButton;
     }
 
     private JScrollPane createTextAreaScrollPane() {
