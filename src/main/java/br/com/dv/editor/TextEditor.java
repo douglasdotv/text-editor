@@ -5,6 +5,7 @@ import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.net.URL;
@@ -12,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class TextEditor extends JFrame {
 
@@ -38,14 +40,13 @@ public class TextEditor extends JFrame {
     }
 
     private JPanel createTopPanel() {
-        textField = createTextField();
-        JButton saveButton = createSaveButton();
-        JButton loadButton = createLoadButton();
-
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        textField = createTextField();
         topPanel.add(textField);
-        topPanel.add(saveButton);
-        topPanel.add(loadButton);
+
+        List<JButton> buttons = createButtons();
+        buttons.forEach(topPanel::add);
 
         return topPanel;
     }
@@ -57,28 +58,38 @@ public class TextEditor extends JFrame {
         return textField;
     }
 
-    private JButton createSaveButton() {
-        URL iconURL = getClass().getClassLoader().getResource("save_file_icon.jpg");
-        if (iconURL == null) {
-            throw new RuntimeException("Resource not found: save_file_icon.jpg");
-        }
-        JButton saveButton = new JButton(new ImageIcon(iconURL));
-        saveButton.setName("SaveButton");
-        forceSize(saveButton, 30, 30);
-        saveButton.addActionListener(e -> saveFile());
-        return saveButton;
+    private List<JButton> createButtons() {
+        JButton saveButton = createButton(
+                getIconURL("save_file_icon.jpg"),
+                "SaveButton",
+                e -> saveFile()
+        );
+        JButton loadButton = createButton(
+                getIconURL("load_file_icon.jpg"),
+                "LoadButton",
+                e -> loadFile()
+        );
+        return List.of(saveButton, loadButton);
     }
 
-    private JButton createLoadButton() {
-        URL iconURL = getClass().getClassLoader().getResource("load_file_icon.jpg");
+    private JButton createButton(URL iconURL, String name, ActionListener actionListener) {
+        JButton button = new JButton(new ImageIcon(iconURL));
+        configureButton(button, name, actionListener);
+        return button;
+    }
+
+    private URL getIconURL(String fileName) {
+        URL iconURL = getClass().getClassLoader().getResource(fileName);
         if (iconURL == null) {
-            throw new RuntimeException("Resource not found: load_file_icon.jpg");
+            throw new RuntimeException("Resource not found: " + fileName);
         }
-        JButton saveButton = new JButton(new ImageIcon(iconURL));
-        saveButton.setName("SaveButton");
-        forceSize(saveButton, 30, 30);
-        saveButton.addActionListener(e -> saveFile());
-        return saveButton;
+        return iconURL;
+    }
+
+    private void configureButton(JButton button, String name, ActionListener actionListener) {
+        button.setName(name);
+        button.addActionListener(actionListener);
+        forceSize(button, 25, 25);
     }
 
     private JScrollPane createTextAreaScrollPane() {
@@ -94,37 +105,38 @@ public class TextEditor extends JFrame {
     }
 
     private JMenuBar createMenuBar() {
-        JMenu menu = new JMenu("File");
-        menu.setName("MenuFile");
-        menu.setMnemonic(KeyEvent.VK_F);
-
-        JMenuItem loadMenuItem = createMenuItem("Load", "MenuLoad", "load");
-        JMenuItem saveMenuItem = createMenuItem("Save", "MenuSave", "save");
-        JMenuItem exitMenuItem = createMenuItem("Exit", "MenuExit", "exit");
-
-        menu.add(loadMenuItem);
-        menu.add(saveMenuItem);
-        menu.add(new JSeparator());
-        menu.add(exitMenuItem);
+        JMenu menu = createMenu();
+        List<JMenuItem> menuItems = createMenuItems();
+        menuItems.forEach(menu::add);
 
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(menu);
-
         return menuBar;
     }
 
-    private JMenuItem createMenuItem(String text, String name, String action) {
-        JMenuItem menuItem = new JMenuItem(text);
-        menuItem.setName(name);
-        menuItem.addActionListener(e -> {
-            switch (action) {
-                case "load" -> loadFile();
-                case "save" -> saveFile();
-                case "exit" -> dispose();
-            }
-        });
+    private JMenu createMenu() {
+        JMenu menu = new JMenu("File");
+        menu.setName("MenuFile");
+        menu.setMnemonic(KeyEvent.VK_F);
+        return menu;
+    }
 
+    private List<JMenuItem> createMenuItems() {
+        JMenuItem loadMenuItem = createMenuItem("Load", "MenuLoad", e -> loadFile());
+        JMenuItem saveMenuItem = createMenuItem("Save", "MenuSave", e -> saveFile());
+        JMenuItem exitMenuItem = createMenuItem("Exit", "MenuExit", e -> dispose());
+        return List.of(loadMenuItem, saveMenuItem, exitMenuItem);
+    }
+
+    private JMenuItem createMenuItem(String text, String name, ActionListener actionListener) {
+        JMenuItem menuItem = new JMenuItem(text);
+        configureMenuItem(menuItem, name, actionListener);
         return menuItem;
+    }
+
+    private void configureMenuItem(JMenuItem menuItem, String name, ActionListener actionListener) {
+        menuItem.setName(name);
+        menuItem.addActionListener(actionListener);
     }
 
     private void saveFile() {
