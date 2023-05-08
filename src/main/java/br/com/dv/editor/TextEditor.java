@@ -19,9 +19,11 @@ public class TextEditor extends JFrame {
     private JTextArea textArea;
     private JTextField searchField;
     private JCheckBox regexCheckBox;
+    private final JFileChooser fileChooser;
 
     public TextEditor() {
         super("Text Editor");
+        fileChooser = createFileChooser();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         initComponents();
         pack();
@@ -219,12 +221,10 @@ public class TextEditor extends JFrame {
     }
 
     private void saveFile() {
-        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-        int returnValue = jfc.showSaveDialog(TextEditor.this);
-
+        int returnValue = fileChooser.showSaveDialog(TextEditor.this);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             try {
-                Files.writeString(jfc.getSelectedFile().toPath(), textArea.getText(), StandardCharsets.UTF_8);
+                Files.writeString(fileChooser.getSelectedFile().toPath(), textArea.getText(), StandardCharsets.UTF_8);
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(TextEditor.this,
                         "Error saving file: " + ex.getMessage());
@@ -233,12 +233,10 @@ public class TextEditor extends JFrame {
     }
 
     private void openFile() {
-        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-        int returnValue = jfc.showOpenDialog(TextEditor.this);
-
+        int returnValue = fileChooser.showOpenDialog(TextEditor.this);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             try {
-                String content = Files.readString(jfc.getSelectedFile().toPath(), StandardCharsets.UTF_8);
+                String content = Files.readString(fileChooser.getSelectedFile().toPath(), StandardCharsets.UTF_8);
                 textArea.setText(content);
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(TextEditor.this,
@@ -249,6 +247,12 @@ public class TextEditor extends JFrame {
 
     private void doNothing() {
         // TODO
+    }
+
+    private JFileChooser createFileChooser() {
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        jfc.setName("FileChooser");
+        return jfc;
     }
 
     private void setMargin(JComponent aComponent, int aTop, int aRight, int aBottom, int aLeft) {
