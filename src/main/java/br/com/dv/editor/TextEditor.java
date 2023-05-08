@@ -30,13 +30,22 @@ public class TextEditor extends JFrame {
     }
 
     private void initComponents() {
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setName("MainPanel");
-        mainPanel.add(createTopPanel(), BorderLayout.NORTH);
-        mainPanel.add(createTextAreaScrollPane(), BorderLayout.CENTER);
-        setMargin(mainPanel, 5, 5, 5, 5);
+        JPanel topPanel = createTopPanel();
+        JScrollPane textAreaScrollPane = createTextAreaScrollPane();
+
+        JPanel mainPanel = createMainPanel();
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        mainPanel.add(textAreaScrollPane, BorderLayout.CENTER);
+
         add(mainPanel);
         setJMenuBar(createMenuBar());
+    }
+
+    private JPanel createMainPanel() {
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setName("MainPanel");
+        setMargin(mainPanel, 5, 5, 5, 5);
+        return mainPanel;
     }
 
     private JPanel createTopPanel() {
@@ -48,6 +57,7 @@ public class TextEditor extends JFrame {
         List<JButton> buttons = createButtons();
         buttons.forEach(topPanel::add);
 
+        setMargin(topPanel, 5, 5, 5, 5);
         return topPanel;
     }
 
@@ -93,15 +103,18 @@ public class TextEditor extends JFrame {
     }
 
     private JScrollPane createTextAreaScrollPane() {
-        textArea = new JTextArea();
-        textArea.setName("TextArea");
-
+        textArea = createTextArea();
         JScrollPane textAreaScrollPane = new JScrollPane(textArea);
         textAreaScrollPane.setName("ScrollPane");
         setMargin(textAreaScrollPane, 10, 10, 10, 10);
         forceSize(textAreaScrollPane, 500, 500);
-
         return textAreaScrollPane;
+    }
+
+    private JTextArea createTextArea() {
+        JTextArea textArea = new JTextArea();
+        textArea.setName("TextArea");
+        return textArea;
     }
 
     private JMenuBar createMenuBar() {
