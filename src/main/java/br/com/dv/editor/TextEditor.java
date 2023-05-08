@@ -17,6 +17,8 @@ import java.util.List;
 public class TextEditor extends JFrame {
 
     private JTextArea textArea;
+    private JTextField searchField;
+    private JCheckBox regexCheckBox;
 
     public TextEditor() {
         super("Text Editor");
@@ -50,7 +52,13 @@ public class TextEditor extends JFrame {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         List<JButton> buttons = createButtons();
-        buttons.forEach(topPanel::add);
+        searchField = createSearchField();
+        regexCheckBox = createRegexCheckBox();
+
+        buttons.subList(0, 2).forEach(topPanel::add);
+        topPanel.add(searchField);
+        buttons.subList(2, 5).forEach(topPanel::add);
+        topPanel.add(regexCheckBox);
 
         setMargin(topPanel, 5, 5, 5, 5);
         return topPanel;
@@ -67,7 +75,32 @@ public class TextEditor extends JFrame {
                 "OpenButton",
                 e -> openFile()
         );
-        return List.of(saveButton, openButton);
+        JButton startSearchButton = createButton(
+                getIconURL("search_icon.jpg"),
+                "StartSearchButton",
+                e -> doNothing()
+                // e -> startSearch()
+        );
+        JButton previousMatchButton = createButton(
+                getIconURL("previous_icon.jpg"),
+                "PreviousMatchButton",
+                e -> doNothing()
+                // e -> goToPreviousMatch()
+        );
+        JButton nextMatchButton = createButton(
+                getIconURL("next_icon.jpg"),
+                "NextMatchButton",
+                e -> doNothing()
+                // e -> goToNextMatch()
+        );
+
+        return List.of(
+                saveButton,
+                openButton,
+                startSearchButton,
+                previousMatchButton,
+                nextMatchButton
+        );
     }
 
     private JButton createButton(URL iconURL, String name, ActionListener actionListener) {
@@ -88,6 +121,20 @@ public class TextEditor extends JFrame {
         button.setName(name);
         button.addActionListener(actionListener);
         forceSize(button, 25, 25);
+    }
+
+    private JTextField createSearchField() {
+        JTextField textField = new JTextField();
+        textField.setName("SearchField");
+        forceSize(textField, 200, 25);
+        return textField;
+    }
+
+    private JCheckBox createRegexCheckBox() {
+        JCheckBox checkBox = new JCheckBox("Use regex");
+        checkBox.setName("UseRegExCheckbox");
+        forceSize(checkBox, 100, 25);
+        return checkBox;
     }
 
     private JScrollPane createTextAreaScrollPane() {
@@ -168,6 +215,10 @@ public class TextEditor extends JFrame {
                         "Error opening file: " + ex.getMessage());
             }
         }
+    }
+
+    private void doNothing() {
+        // TODO
     }
 
     private void setMargin(JComponent aComponent, int aTop, int aRight, int aBottom, int aLeft) {
