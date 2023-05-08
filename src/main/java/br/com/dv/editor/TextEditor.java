@@ -153,34 +153,64 @@ public class TextEditor extends JFrame {
     }
 
     private JMenuBar createMenuBar() {
-        JMenu menu = createMenu();
-        List<JComponent> menuItems = createMenuItems();
-        menuItems.forEach(menu::add);
+        JMenu fileMenu = createMenu("File", "MenuFile", KeyEvent.VK_F);
+        List<JComponent> fileMenuItems = createFileMenuItems();
+        fileMenuItems.forEach(fileMenu::add);
+
+        JMenu searchMenu = createMenu("Search", "MenuSearch", KeyEvent.VK_S);
+        List<JComponent> searchMenuItems = createSearchMenuItems();
+        searchMenuItems.forEach(searchMenu::add);
 
         JMenuBar menuBar = new JMenuBar();
-        menuBar.add(menu);
+        menuBar.add(fileMenu);
+        menuBar.add(searchMenu);
+
         return menuBar;
     }
 
-    private JMenu createMenu() {
-        JMenu menu = new JMenu("File");
-        menu.setName("MenuFile");
-        menu.setMnemonic(KeyEvent.VK_F);
+    private JMenu createMenu(String text, String name, int mnemonic) {
+        JMenu menu = new JMenu(text);
+        menu.setName(name);
+        menu.setMnemonic(mnemonic);
         return menu;
-    }
-
-    private List<JComponent> createMenuItems() {
-        JMenuItem openMenuItem = createMenuItem("Open", "MenuOpen", e -> openFile());
-        JMenuItem saveMenuItem = createMenuItem("Save", "MenuSave", e -> saveFile());
-        JSeparator separator = new JSeparator();
-        JMenuItem exitMenuItem = createMenuItem("Exit", "MenuExit", e -> dispose());
-        return List.of(openMenuItem, saveMenuItem, separator, exitMenuItem);
     }
 
     private JMenuItem createMenuItem(String text, String name, ActionListener actionListener) {
         JMenuItem menuItem = new JMenuItem(text);
         configureMenuItem(menuItem, name, actionListener);
         return menuItem;
+    }
+
+    private List<JComponent> createFileMenuItems() {
+        JMenuItem openMenuItem = createMenuItem("Open", "MenuOpen", e -> openFile());
+        JMenuItem saveMenuItem = createMenuItem("Save", "MenuSave", e -> saveFile());
+        JSeparator separator = new JSeparator();
+        JMenuItem exitMenuItem = createMenuItem("Exit", "MenuExit", e -> dispose());
+
+        return List.of(
+                openMenuItem,
+                saveMenuItem,
+                separator,
+                exitMenuItem
+        );
+    }
+
+    private List<JComponent> createSearchMenuItems() {
+        JMenuItem startSearchMenuItem = createMenuItem("Start search", "MenuStartSearch",
+                e -> doNothing()); // startSearch
+        JMenuItem previousMatchMenuItem = createMenuItem("Previous match", "MenuPreviousMatch",
+                e -> doNothing()); // goToPreviousMatch
+        JMenuItem nextMatchMenuItem = createMenuItem("Next match", "MenuNextMatch",
+                e -> doNothing()); // goToNextMatch
+        JMenuItem useRegexMenuItem = createMenuItem("Use regular expressions", "MenuUseRegExp",
+                e -> doNothing()); // toggleUseRegExp
+
+        return List.of(
+                startSearchMenuItem,
+                previousMatchMenuItem,
+                nextMatchMenuItem,
+                useRegexMenuItem
+        );
     }
 
     private void configureMenuItem(JMenuItem menuItem, String name, ActionListener actionListener) {
