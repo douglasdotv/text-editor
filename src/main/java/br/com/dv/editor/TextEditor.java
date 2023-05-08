@@ -4,6 +4,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileSystemView;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -11,13 +12,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Paths;
 import java.util.List;
 
 public class TextEditor extends JFrame {
 
-    private JTextField textField;
     private JTextArea textArea;
 
     public TextEditor() {
@@ -51,21 +49,11 @@ public class TextEditor extends JFrame {
     private JPanel createTopPanel() {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
-        textField = createTextField();
-        topPanel.add(textField);
-
         List<JButton> buttons = createButtons();
         buttons.forEach(topPanel::add);
 
         setMargin(topPanel, 5, 5, 5, 5);
         return topPanel;
-    }
-
-    private JTextField createTextField() {
-        JTextField textField = new JTextField();
-        textField.setName("FilenameField");
-        forceSize(textField, 250, 25);
-        return textField;
     }
 
     private List<JButton> createButtons() {
@@ -74,12 +62,12 @@ public class TextEditor extends JFrame {
                 "SaveButton",
                 e -> saveFile()
         );
-        JButton loadButton = createButton(
-                getIconURL("load_file_icon.jpg"),
-                "LoadButton",
-                e -> loadFile()
+        JButton openButton = createButton(
+                getIconURL("open_file_icon.jpg"),
+                "OpenButton",
+                e -> openFile()
         );
-        return List.of(saveButton, loadButton);
+        return List.of(saveButton, openButton);
     }
 
     private JButton createButton(URL iconURL, String name, ActionListener actionListener) {
@@ -119,7 +107,7 @@ public class TextEditor extends JFrame {
 
     private JMenuBar createMenuBar() {
         JMenu menu = createMenu();
-        List<JMenuItem> menuItems = createMenuItems();
+        List<JComponent> menuItems = createMenuItems();
         menuItems.forEach(menu::add);
 
         JMenuBar menuBar = new JMenuBar();
@@ -134,11 +122,12 @@ public class TextEditor extends JFrame {
         return menu;
     }
 
-    private List<JMenuItem> createMenuItems() {
-        JMenuItem loadMenuItem = createMenuItem("Load", "MenuLoad", e -> loadFile());
+    private List<JComponent> createMenuItems() {
+        JMenuItem openMenuItem = createMenuItem("Open", "MenuOpen", e -> openFile());
         JMenuItem saveMenuItem = createMenuItem("Save", "MenuSave", e -> saveFile());
+        JSeparator separator = new JSeparator();
         JMenuItem exitMenuItem = createMenuItem("Exit", "MenuExit", e -> dispose());
-        return List.of(loadMenuItem, saveMenuItem, exitMenuItem);
+        return List.of(openMenuItem, saveMenuItem, separator, exitMenuItem);
     }
 
     private JMenuItem createMenuItem(String text, String name, ActionListener actionListener) {
@@ -153,33 +142,31 @@ public class TextEditor extends JFrame {
     }
 
     private void saveFile() {
-        String fileName = textField.getText();
-        if (fileName.isEmpty()) {
-            JOptionPane.showMessageDialog(TextEditor.this, "Please enter a file name.");
-            return;
-        }
-        try {
-            Files.writeString(Paths.get("src", fileName), textArea.getText());
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(TextEditor.this,
-                    "Error saving file: " + ex.getMessage());
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        int returnValue = jfc.showSaveDialog(TextEditor.this);
+
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            try {
+                Files.writeString(jfc.getSelectedFile().toPath(), textArea.getText(), StandardCharsets.UTF_8);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(TextEditor.this,
+                        "Error saving file: " + ex.getMessage());
+            }
         }
     }
 
-    private void loadFile() {
-        String fileName = textField.getText();
-        if (fileName.isEmpty()) {
-            JOptionPane.showMessageDialog(TextEditor.this, "Please enter a file name.");
-            return;
-        }
-        try {
-            textArea.setText(Files.readString(Paths.get("src", fileName), StandardCharsets.UTF_8));
-        } catch (NoSuchFileException ex) {
-            textArea.setText("");
-            JOptionPane.showMessageDialog(TextEditor.this, "File not found: " + fileName);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(TextEditor.this,
-                    "Error loading file: " + ex.getMessage());
+    private void openFile() {
+        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        int returnValue = jfc.showOpenDialog(TextEditor.this);
+
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            try {
+                String content = Files.readString(jfc.getSelectedFile().toPath(), StandardCharsets.UTF_8);
+                textArea.setText(content);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(TextEditor.this,
+                        "Error opening file: " + ex.getMessage());
+            }
         }
     }
 
