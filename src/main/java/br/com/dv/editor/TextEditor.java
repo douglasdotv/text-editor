@@ -10,6 +10,14 @@ import java.util.List;
 
 public class TextEditor extends JFrame {
 
+    static {
+        try {
+            UIManager.setLookAndFeel(new com.formdev.flatlaf.FlatLightLaf());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private JTextArea textArea;
     private JTextField searchField;
     private JCheckBox regexCheckBox;
