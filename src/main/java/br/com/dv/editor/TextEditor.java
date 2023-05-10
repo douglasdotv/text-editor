@@ -1,48 +1,30 @@
 package br.com.dv.editor;
 
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileSystemView;
-import javax.swing.text.DefaultHighlighter;
-import javax.swing.text.Highlighter;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class TextEditor extends JFrame {
 
     private JTextArea textArea;
     private JTextField searchField;
     private JCheckBox regexCheckBox;
-    private final JFileChooser fileChooser;
-    private final Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
-    private Pattern pattern;
-    private Matcher matcher;
-    private final List<Integer> matchStartIndices = new ArrayList<>();
-    private final List<Integer> matchEndIndices = new ArrayList<>();
-    private int currentMatchIndex = -1;
+    private final FileHandler fileHandler;
+    private final SearchHandler searchHandler;
 
     public TextEditor() {
         super("Text Editor");
-        fileChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-        fileChooser.setName("FileChooser");
-        add(fileChooser);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         initComponents();
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
+        fileHandler = new FileHandler(textArea);
+        searchHandler = new SearchHandler(searchField, textArea, regexCheckBox);
     }
 
     private void initComponents() {
@@ -60,23 +42,24 @@ public class TextEditor extends JFrame {
     private JPanel createMainPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setName("MainPanel");
-        setMargin(mainPanel, 5, 5, 5, 5);
+        Utils.setMargin(mainPanel, 5, 5, 5, 5);
         return mainPanel;
     }
 
     private JPanel createTopPanel() {
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-
         List<JButton> buttons = createButtons();
         searchField = createSearchField();
         regexCheckBox = createRegexCheckBox();
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
         buttons.subList(0, 2).forEach(topPanel::add);
         topPanel.add(searchField);
         buttons.subList(2, 5).forEach(topPanel::add);
         topPanel.add(regexCheckBox);
 
-        setMargin(topPanel, 5, 5, 5, 5);
+        Utils.setMargin(topPanel, 5, 5, 5, 5);
+
         return topPanel;
     }
 
@@ -84,27 +67,27 @@ public class TextEditor extends JFrame {
         JButton saveButton = createButton(
                 getIconURL("save_file_icon.jpg"),
                 "SaveButton",
-                e -> saveFile()
+                e -> fileHandler.saveFile()
         );
         JButton openButton = createButton(
                 getIconURL("open_file_icon.jpg"),
                 "OpenButton",
-                e -> openFile()
+                e -> fileHandler.openFile()
         );
         JButton startSearchButton = createButton(
                 getIconURL("search_icon.jpg"),
                 "StartSearchButton",
-                e -> startSearch()
+                e -> searchHandler.startSearch()
         );
         JButton previousMatchButton = createButton(
                 getIconURL("previous_icon.jpg"),
                 "PreviousMatchButton",
-                e -> goToPreviousMatch()
+                e -> searchHandler.goToPreviousMatch()
         );
         JButton nextMatchButton = createButton(
                 getIconURL("next_icon.jpg"),
                 "NextMatchButton",
-                e -> goToNextMatch()
+                e -> searchHandler.goToNextMatch()
         );
 
         return List.of(
@@ -125,7 +108,7 @@ public class TextEditor extends JFrame {
     private void configureButton(JButton button, String name, ActionListener actionListener) {
         button.setName(name);
         button.addActionListener(actionListener);
-        forceSize(button, 25, 25);
+        Utils.forceSize(button, 25, 25);
     }
 
     private URL getIconURL(String fileName) {
@@ -140,14 +123,13 @@ public class TextEditor extends JFrame {
     private JTextField createSearchField() {
         JTextField textField = new JTextField();
         textField.setName("SearchField");
-        forceSize(textField, 200, 25);
+        Utils.forceSize(textField, 200, 25);
         return textField;
     }
 
     private JCheckBox createRegexCheckBox() {
         JCheckBox checkBox = new JCheckBox("Use regex");
         checkBox.setName("UseRegExCheckbox");
-        forceSize(checkBox, 100, 25);
         return checkBox;
     }
 
@@ -155,8 +137,8 @@ public class TextEditor extends JFrame {
         textArea = createTextArea();
         JScrollPane textAreaScrollPane = new JScrollPane(textArea);
         textAreaScrollPane.setName("ScrollPane");
-        setMargin(textAreaScrollPane, 10, 10, 10, 10);
-        forceSize(textAreaScrollPane, 500, 500);
+        Utils.setMargin(textAreaScrollPane, 10, 10, 10, 10);
+        Utils.forceSize(textAreaScrollPane, 500, 500);
         return textAreaScrollPane;
     }
 
@@ -201,8 +183,8 @@ public class TextEditor extends JFrame {
     }
 
     private List<JComponent> createFileMenuItems() {
-        JMenuItem openMenuItem = createMenuItem("Open", "MenuOpen", e -> openFile());
-        JMenuItem saveMenuItem = createMenuItem("Save", "MenuSave", e -> saveFile());
+        JMenuItem openMenuItem = createMenuItem("Open", "MenuOpen", e -> fileHandler.openFile());
+        JMenuItem saveMenuItem = createMenuItem("Save", "MenuSave", e -> fileHandler.saveFile());
         JSeparator separator = new JSeparator();
         JMenuItem exitMenuItem = createMenuItem("Exit", "MenuExit", e -> dispose());
 
@@ -216,13 +198,13 @@ public class TextEditor extends JFrame {
 
     private List<JComponent> createSearchMenuItems() {
         JMenuItem startSearchMenuItem = createMenuItem("Start search", "MenuStartSearch",
-                e -> startSearch());
+                e -> searchHandler.startSearch());
         JMenuItem previousMatchMenuItem = createMenuItem("Previous match", "MenuPreviousMatch",
-                e -> goToPreviousMatch());
+                e -> searchHandler.goToPreviousMatch());
         JMenuItem nextMatchMenuItem = createMenuItem("Next match", "MenuNextMatch",
-                e -> goToNextMatch());
+                e -> searchHandler.goToNextMatch());
         JMenuItem useRegexMenuItem = createMenuItem("Use regular expressions", "MenuUseRegExp",
-                e -> toggleUseRegExp());
+                e -> searchHandler.toggleRegexCheckbox());
 
         return List.of(
                 startSearchMenuItem,
@@ -230,125 +212,6 @@ public class TextEditor extends JFrame {
                 nextMatchMenuItem,
                 useRegexMenuItem
         );
-    }
-
-    private void saveFile() {
-        fileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
-        fileChooser.setControlButtonsAreShown(true);
-        fileChooser.setSelectedFile(null); // Reset the selected file
-        int returnValue = fileChooser.showSaveDialog(null);
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
-            try {
-                Files.writeString(fileChooser.getSelectedFile().toPath(), textArea.getText(), StandardCharsets.UTF_8);
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "Could not save file");
-            }
-        }
-    }
-
-    private void openFile() {
-        fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
-        fileChooser.setControlButtonsAreShown(true);
-        int returnValue = fileChooser.showOpenDialog(null);
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
-            try {
-                String content = Files.readString(fileChooser.getSelectedFile().toPath(), StandardCharsets.UTF_8);
-                textArea.setText(content);
-            } catch (IOException ex) {
-                textArea.setText("");
-                JOptionPane.showMessageDialog(this, "Could not open file");
-            }
-        }
-        fileChooser.setControlButtonsAreShown(false);
-    }
-
-    private void startSearch() {
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
-            List<Integer> matchStarts;
-            List<Integer> matchEnds;
-
-            @Override
-            protected Void doInBackground() {
-                String searchText = searchField.getText();
-                String textAreaText = textArea.getText();
-
-                matchStarts = new ArrayList<>();
-                matchEnds = new ArrayList<>();
-
-                if (regexCheckBox.isSelected()) {
-                    pattern = Pattern.compile(searchText);
-                    matcher = pattern.matcher(textAreaText);
-                } else {
-                    matcher = Pattern.compile(Pattern.quote(searchText)).matcher(textAreaText);
-                }
-
-                while (matcher.find()) {
-                    matchStarts.add(matcher.start());
-                    matchEnds.add(matcher.end());
-                }
-
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                matchStartIndices.clear();
-                matchEndIndices.clear();
-                currentMatchIndex = -1;
-
-                matchStartIndices.addAll(matchStarts);
-                matchEndIndices.addAll(matchEnds);
-
-                if (!matchStartIndices.isEmpty()) {
-                    goToNextMatch();
-                }
-            }
-        };
-
-        worker.execute();
-    }
-
-    private void highlightMatch(int start, int end) {
-        try {
-            textArea.getHighlighter().removeAllHighlights();
-            textArea.getHighlighter().addHighlight(start, end, painter);
-            textArea.setSelectionStart(start);
-            textArea.setSelectionEnd(end);
-            textArea.grabFocus();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    private void goToNextMatch() {
-        if (currentMatchIndex < matchStartIndices.size() - 1) {
-            currentMatchIndex++;
-            highlightMatch(matchStartIndices.get(currentMatchIndex), matchEndIndices.get(currentMatchIndex));
-        }
-    }
-
-    private void goToPreviousMatch() {
-        if (currentMatchIndex > 0) {
-            currentMatchIndex--;
-            highlightMatch(matchStartIndices.get(currentMatchIndex), matchEndIndices.get(currentMatchIndex));
-        }
-    }
-
-    public void toggleUseRegExp() {
-        regexCheckBox.setSelected(!regexCheckBox.isSelected());
-    }
-
-    private void setMargin(JComponent aComponent, int aTop, int aRight, int aBottom, int aLeft) {
-        Border border = aComponent.getBorder();
-        Border marginBorder = new EmptyBorder(new Insets(aTop, aLeft, aBottom, aRight));
-        aComponent.setBorder(border == null ? marginBorder : new CompoundBorder(marginBorder, border));
-    }
-
-    private void forceSize(JComponent component, int width, int height) {
-        Dimension d = new Dimension(width, height);
-        component.setMinimumSize(d);
-        component.setMaximumSize(d);
-        component.setPreferredSize(d);
     }
 
 }
