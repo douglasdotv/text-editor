@@ -11,9 +11,11 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,12 +27,17 @@ public class TextEditor extends JFrame {
     private JCheckBox regexCheckBox;
     private final JFileChooser fileChooser;
     private final Highlighter.HighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
+    private Pattern pattern;
     private Matcher matcher;
-    private int matchStartIndex = -1;
+    private final List<Integer> matchStartIndices = new ArrayList<>();
+    private final List<Integer> matchEndIndices = new ArrayList<>();
+    private int currentMatchIndex = -1;
 
     public TextEditor() {
         super("Text Editor");
-        fileChooser = createFileChooser();
+        fileChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+        fileChooser.setName("FileChooser");
+        add(fileChooser);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         initComponents();
         pack();
@@ -122,11 +129,12 @@ public class TextEditor extends JFrame {
     }
 
     private URL getIconURL(String fileName) {
-        URL iconURL = getClass().getClassLoader().getResource(fileName);
-        if (iconURL == null) {
-            throw new RuntimeException("Resource not found: " + fileName);
+        try {
+            return new URL("file:src/main/resources/" + fileName);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
         }
-        return iconURL;
+        return null;
     }
 
     private JTextField createSearchField() {
@@ -225,48 +233,58 @@ public class TextEditor extends JFrame {
     }
 
     private void saveFile() {
-        int returnValue = fileChooser.showSaveDialog(TextEditor.this);
+        fileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+        fileChooser.setControlButtonsAreShown(true);
+        fileChooser.setSelectedFile(null); // Reset the selected file
+        int returnValue = fileChooser.showSaveDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             try {
                 Files.writeString(fileChooser.getSelectedFile().toPath(), textArea.getText(), StandardCharsets.UTF_8);
             } catch (IOException ex) {
-                JOptionPane.showMessageDialog(TextEditor.this,
-                        "Error saving file: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Could not save file");
             }
         }
     }
 
     private void openFile() {
-        int returnValue = fileChooser.showOpenDialog(TextEditor.this);
+        fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
+        fileChooser.setControlButtonsAreShown(true);
+        int returnValue = fileChooser.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             try {
                 String content = Files.readString(fileChooser.getSelectedFile().toPath(), StandardCharsets.UTF_8);
                 textArea.setText(content);
             } catch (IOException ex) {
                 textArea.setText("");
-                JOptionPane.showMessageDialog(TextEditor.this,
-                        "Error opening file: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Could not open file");
             }
         }
+        fileChooser.setControlButtonsAreShown(false);
     }
 
     private void startSearch() {
         new Thread(() -> {
-            textArea.getHighlighter().removeAllHighlights();
-
             String searchText = searchField.getText();
             String textAreaText = textArea.getText();
 
+            matchStartIndices.clear();
+            matchEndIndices.clear();
+            currentMatchIndex = -1;
+
             if (regexCheckBox.isSelected()) {
-                Pattern pattern = Pattern.compile(searchText, Pattern.CASE_INSENSITIVE);
+                pattern = Pattern.compile(searchText, Pattern.CASE_INSENSITIVE);
                 matcher = pattern.matcher(textAreaText);
             } else {
                 matcher = Pattern.compile(Pattern.quote(searchText), Pattern.CASE_INSENSITIVE).matcher(textAreaText);
             }
 
-            if (matcher.find()) {
-                matchStartIndex = matcher.start();
-                highlightMatch(matchStartIndex, matcher.end());
+            while (matcher.find()) {
+                matchStartIndices.add(matcher.start());
+                matchEndIndices.add(matcher.end());
+            }
+
+            if (!matchStartIndices.isEmpty()) {
+                goToNextMatch();
             } else {
                 JOptionPane.showMessageDialog(this, "No matches found");
             }
@@ -277,7 +295,8 @@ public class TextEditor extends JFrame {
         try {
             textArea.getHighlighter().removeAllHighlights();
             textArea.getHighlighter().addHighlight(start, end, painter);
-            textArea.setCaretPosition(end);
+            textArea.setSelectionStart(start);
+            textArea.setSelectionEnd(end);
             textArea.grabFocus();
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -285,48 +304,21 @@ public class TextEditor extends JFrame {
     }
 
     private void goToNextMatch() {
-        if (matcher != null && matcher.find()) {
-            matchStartIndex = matcher.start();
-            highlightMatch(matchStartIndex, matcher.end());
-        } else {
-            JOptionPane.showMessageDialog(this, "No more matches found");
+        if (currentMatchIndex < matchStartIndices.size() - 1) {
+            currentMatchIndex++;
+            highlightMatch(matchStartIndices.get(currentMatchIndex), matchEndIndices.get(currentMatchIndex));
         }
     }
 
     private void goToPreviousMatch() {
-        if (matcher != null) {
-            String searchText = searchField.getText();
-            String textAreaText = textArea.getText().substring(0, matchStartIndex);
-
-            if (regexCheckBox.isSelected()) {
-                Pattern pattern = Pattern.compile(searchText, Pattern.CASE_INSENSITIVE);
-                matcher = pattern.matcher(textAreaText);
-            } else {
-                matcher = Pattern.compile(Pattern.quote(searchText), Pattern.CASE_INSENSITIVE).matcher(textAreaText);
-            }
-
-            int lastIndex = -1;
-            while (matcher.find()) {
-                lastIndex = matcher.start();
-            }
-
-            if (lastIndex != -1) {
-                matchStartIndex = lastIndex;
-                highlightMatch(matchStartIndex, matchStartIndex + searchText.length());
-            } else {
-                JOptionPane.showMessageDialog(this, "No previous matches found");
-            }
+        if (currentMatchIndex > 0) {
+            currentMatchIndex--;
+            highlightMatch(matchStartIndices.get(currentMatchIndex), matchEndIndices.get(currentMatchIndex));
         }
     }
 
     public void toggleUseRegExp() {
         regexCheckBox.setSelected(!regexCheckBox.isSelected());
-    }
-
-    private JFileChooser createFileChooser() {
-        JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-        jfc.setName("FileChooser");
-        return jfc;
     }
 
     private void setMargin(JComponent aComponent, int aTop, int aRight, int aBottom, int aLeft) {
