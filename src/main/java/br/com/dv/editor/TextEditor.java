@@ -263,15 +263,17 @@ public class TextEditor extends JFrame {
     }
 
     private void startSearch() {
-        new SwingWorker<>() {
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            List<Integer> matchStarts;
+            List<Integer> matchEnds;
+
             @Override
             protected Void doInBackground() {
                 String searchText = searchField.getText();
                 String textAreaText = textArea.getText();
 
-                matchStartIndices.clear();
-                matchEndIndices.clear();
-                currentMatchIndex = -1;
+                matchStarts = new ArrayList<>();
+                matchEnds = new ArrayList<>();
 
                 if (regexCheckBox.isSelected()) {
                     pattern = Pattern.compile(searchText);
@@ -281,8 +283,8 @@ public class TextEditor extends JFrame {
                 }
 
                 while (matcher.find()) {
-                    matchStartIndices.add(matcher.start());
-                    matchEndIndices.add(matcher.end());
+                    matchStarts.add(matcher.start());
+                    matchEnds.add(matcher.end());
                 }
 
                 return null;
@@ -290,11 +292,20 @@ public class TextEditor extends JFrame {
 
             @Override
             protected void done() {
+                matchStartIndices.clear();
+                matchEndIndices.clear();
+                currentMatchIndex = -1;
+
+                matchStartIndices.addAll(matchStarts);
+                matchEndIndices.addAll(matchEnds);
+
                 if (!matchStartIndices.isEmpty()) {
                     goToNextMatch();
                 }
             }
-        }.execute();
+        };
+
+        worker.execute();
     }
 
     private void highlightMatch(int start, int end) {
