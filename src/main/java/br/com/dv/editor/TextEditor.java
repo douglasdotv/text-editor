@@ -263,32 +263,38 @@ public class TextEditor extends JFrame {
     }
 
     private void startSearch() {
-        new Thread(() -> {
-            String searchText = searchField.getText();
-            String textAreaText = textArea.getText();
+        new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() {
+                String searchText = searchField.getText();
+                String textAreaText = textArea.getText();
 
-            matchStartIndices.clear();
-            matchEndIndices.clear();
-            currentMatchIndex = -1;
+                matchStartIndices.clear();
+                matchEndIndices.clear();
+                currentMatchIndex = -1;
 
-            if (regexCheckBox.isSelected()) {
-                pattern = Pattern.compile(searchText, Pattern.CASE_INSENSITIVE);
-                matcher = pattern.matcher(textAreaText);
-            } else {
-                matcher = Pattern.compile(Pattern.quote(searchText), Pattern.CASE_INSENSITIVE).matcher(textAreaText);
+                if (regexCheckBox.isSelected()) {
+                    pattern = Pattern.compile(searchText);
+                    matcher = pattern.matcher(textAreaText);
+                } else {
+                    matcher = Pattern.compile(Pattern.quote(searchText)).matcher(textAreaText);
+                }
+
+                while (matcher.find()) {
+                    matchStartIndices.add(matcher.start());
+                    matchEndIndices.add(matcher.end());
+                }
+
+                return null;
             }
 
-            while (matcher.find()) {
-                matchStartIndices.add(matcher.start());
-                matchEndIndices.add(matcher.end());
+            @Override
+            protected void done() {
+                if (!matchStartIndices.isEmpty()) {
+                    goToNextMatch();
+                }
             }
-
-            if (!matchStartIndices.isEmpty()) {
-                goToNextMatch();
-            } else {
-                JOptionPane.showMessageDialog(this, "No matches found");
-            }
-        }).start();
+        }.execute();
     }
 
     private void highlightMatch(int start, int end) {
